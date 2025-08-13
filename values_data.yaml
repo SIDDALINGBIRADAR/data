@@ -1,0 +1,101 @@
+# airflow-values.yaml
+
+global:
+  postgresql:
+    auth:
+      postgresPassword: "supersecretpassword"
+      database: airflow
+      username: airflow
+      password: "airflow-password"
+  redis:
+    auth:
+      password: "redis-password"
+
+# Airflow Configuration
+executor: CeleryExecutor
+
+# Use persistent volumes
+postgresql:
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ocs-storagecluster-cephfs  # <-- Change to your SC
+redis:
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: ocs-storagecluster-cephfs   # <-- Change to your SC
+
+# Airflow webserver & scheduler
+web:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    hostname: airflow.apps.your-openshift-domain.com
+    tls: true
+    annotations:
+      route.openshift.io/termination: reencrypt
+      kubernetes.io/tls-acme: "true"
+
+scheduler:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+worker:
+  replicas: 3
+  resources:
+    limits:
+      cpu: "1"
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  podSecurityContext:
+    fsGroup: 1001  # Important: Bitnami images run as non-root (user 1001)
+  containerSecurityContext:
+    runAsUser: 1001
+    runAsNonRoot: true
+
+# DAGs source – use git-sync
+dag:
+  persistence:
+    enabled: false  # disable PVC, use git-sync
+  git:
+    sync:
+      enabled: true
+      repository: https://github.com/your-org/airflow-dags.git
+      branch: main
+      subPath: ""  # path within repo
+      secretName: airflow-git-creds  # Optional: for private repos
+
+# Logs in PVC (or better: external like S3/GCS)
+logs:
+  persistence:
+    enabled: true
+    existingClaim: airflow-logs-pvc  # or let Helm create
+    mountPath: /opt/bitnami/airflow/logs
+
+# Optional: Use external DB (recommended for prod)
+# externalDatabase:
+#   host: your-rds-endpoint
+#   user: airflow
+#   password: "xxx"
+#   database: airflow
+#   port: 5432
