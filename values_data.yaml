@@ -1,102 +1,14 @@
-# values-openshift.yaml
 
-# Global Service Account
-serviceAccount:
-  create: true
-  name: airflow-sa
+podSecurityContext: {}
+ # fsGroup: 2000
 
-# Security Contexts
-securityContexts:
-  pod:
-    runAsUser: 1001980000
-    fsGroup: 1001980000
-  container:
-    runAsUser: 1001980000
-
-# PostgreSQL
-postgresql:
-  enabled: true
-  auth:
-    postgresPassword: "supersecretpassword"
-    database: airflow
-    username: airflow
-  primary:
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ocs-storagecluster-cephfs
-
-# Redis
-redis:
-  enabled: true
-  auth:
-    enabled: true
-    password: "redis-password"
-  master:
-    persistence:
-      enabled: true
-      size: 5Gi
-      storageClass: ocs-storagecluster-cephfs
-
-# Airflow Components
-webserver:
-  replicas: 2
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 200m
-      memory: 512Mi
-
-scheduler:
-  replicas: 2
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 200m
-      memory: 512Mi
-
-worker:
-  replicas: 3
-  resources:
-    limits:
-      cpu: "1"
-      memory: 2Gi
-    requests:
-      cpu: 500m
-      memory: 1Gi
-
-
-
-# Logs
-logs:
-  persistence:
-    enabled: true
-    existingClaim: airflow-logs-pvc
-    mountPath: /opt/bitnami/airflow/logs
-
-# Persistent Storage
-persistence:
-  enabled: true
-  size: 10Gi
-  storageClass: ocs-storagecluster-cephfs
-
-# Ingress
-ingress:
-  enabled: true
-  className: openshift-ingress
-  hosts:
-    - host: airflow.demo-air-o.svc.cluster.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: airflow-tls-secret
-      hosts:
-        - airflow.demo-air-o.svc.cluster.local
-
-# Additional Configurations
-useHelmHooks: true
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1001990001
+  seccompProfile: 
+    type: RuntimeDefault
