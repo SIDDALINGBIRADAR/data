@@ -1,145 +1,102 @@
 # values-openshift.yaml
 
-# Use Apache Airflow image (official) – ensure it supports arbitrary UID
-images:
-  airflow:
-    repository: apache/airflow
-    tag: 3.0.2
-    pullPolicy: IfNotPresent
-
-# Default UID/GID to match OpenShift project range
-uid: 1001960000
-gid: 1001960000
-
-# Global security context (new format)
-securityContexts:
-  pod:
-    runAsUser: 1001960000
-    runAsGroup: 1001960000
-    fsGroup: 1001960000
-  containers:
-    runAsUser: 1001960000
-    runAsGroup: 1001960000
-
-# Assign custom service account
+# Global Service Account
 serviceAccount:
   create: true
   name: airflow-sa
-  annotations: {}
 
-# Apply to all components
-webserver:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
+# Security Contexts
+securityContexts:
+  pod:
+    runAsUser: 1001980000
+    fsGroup: 1001980000
+  container:
+    runAsUser: 1001980000
 
-scheduler:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-workers:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-triggerer:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-apiServer:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-dagProcessor:
-  serviceAccountName: airflow-sa
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containers:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-# Fix init containers (wait-for-migrations, etc.)
-waitForMigrations:
-  securityContexts:
-    container:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-
-# PostgreSQL (from dependency chart)
+# PostgreSQL
 postgresql:
   enabled: true
   auth:
     postgresPassword: "supersecretpassword"
     database: airflow
     username: airflow
-    password: "airflow-secret"
   primary:
-    securityContext:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containerSecurityContext:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-  volumePermissions:
-    enabled: true  # Ensures volume is writable by our UID
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ocs-storagecluster-cephfs
 
 # Redis
 redis:
   enabled: true
   auth:
     enabled: true
-    password: "redis-secret"
+    password: "redis-password"
   master:
-    securityContext:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-      fsGroup: 1001960000
-    containerSecurityContext:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-  volumePermissions:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: ocs-storagecluster-cephfs
+
+# Airflow Components
+webserver:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+scheduler:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+worker:
+  replicas: 3
+  resources:
+    limits:
+      cpu: "1"
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+
+
+# Logs
+logs:
+  persistence:
     enabled: true
+    existingClaim: airflow-logs-pvc
+    mountPath: /opt/bitnami/airflow/logs
 
-# Prevent seccomp issues
-podAnnotations: {}
-containerAnnotations: {}
+# Persistent Storage
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ocs-storagecluster-cephfs
 
-# Optional: Use Helm hooks (disable if using ArgoCD)
+# Ingress
+ingress:
+  enabled: true
+  className: openshift-ingress
+  hosts:
+    - host: airflow.demo-air-o.svc.cluster.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: airflow-tls-secret
+      hosts:
+        - airflow.demo-air-o.svc.cluster.local
+
+# Additional Configurations
 useHelmHooks: true
