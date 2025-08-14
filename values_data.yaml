@@ -1,101 +1,83 @@
-# airflow-values.yaml
+# Override default security contexts for OpenShift
+securityContext:
+  runAsUser: 1001960000  # Matches your project's UID range
+  fsGroup: 1001960000    # Matches your project's GID range
+  runAsGroup: 1001960000 # Matches your project's GID range
 
-global:
-  postgresql:
-    auth:
-      postgresPassword: "supersecretpassword"
-      database: airflow
-      username: airflow
-      password: "airflow-password"
-  redis:
-    auth:
-      password: "redis-password"
+# For Airflow 2.0+ with detailed security contexts
+securityContexts:
+  pod:
+    runAsUser: 1001960000
+    fsGroup: 1001960000
+    runAsGroup: 1001960000
+  containers: {}
 
-# Airflow Configuration
-executor: CeleryExecutor
-
-# Use persistent volumes
-postgresql:
-  primary:
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ocs-storagecluster-cephfs  # <-- Change to your SC
-redis:
-  master:
-    persistence:
-      enabled: true
-      size: 5Gi
-      storageClass: ocs-storagecluster-cephfs   # <-- Change to your SC
-
-# Airflow webserver & scheduler
-web:
-  replicas: 2
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 200m
-      memory: 512Mi
-  service:
-    type: ClusterIP
-  ingress:
-    enabled: true
-    hostname: airflow.apps.your-openshift-domain.com
-    tls: true
-    annotations:
-      route.openshift.io/termination: reencrypt
-      kubernetes.io/tls-acme: "true"
+# Disable default security contexts that might conflict with OpenShift
+workers:
+  securityContext: {}
+  securityContexts:
+    pod: {}
+    container: {}
 
 scheduler:
-  replicas: 2
-  resources:
-    limits:
-      cpu: 500m
-      memory: 1Gi
-    requests:
-      cpu: 200m
-      memory: 512Mi
+  securityContext: {}
+  securityContexts:
+    pod: {}
+    container: {}
 
-worker:
-  replicas: 3
-  resources:
-    limits:
-      cpu: "1"
-      memory: 2Gi
-    requests:
-      cpu: 500m
-      memory: 1Gi
-  podSecurityContext:
-    fsGroup: 1001  # Important: Bitnami images run as non-root (user 1001)
-  containerSecurityContext:
-    runAsUser: 1001
-    runAsNonRoot: true
+webserver:
+  securityContext: {}
+  securityContexts:
+    pod: {}
+    container: {}
 
-# DAGs source – use git-sync
-dag:
+triggerer:
+  securityContext: {}
+  securityContexts:
+    pod: {}
+    container: {}
+
+# Enable RBAC with OpenShift SCC
+rbac:
+  create: true
+  createSCCRoleBinding: true  # This is crucial for OpenShift
+
+# Set UID/GID for specific components
+redis:
+  uid: 1001960000
+  securityContext:
+    runAsUser: 1001960000
+    runAsGroup: 1001960000
+
+pgbouncer:
+  uid: 1001960000
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+    container: {}
+
+# For git-sync if enabled
+dags:
+  gitSync:
+    uid: 1001960000
+    securityContext:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+# Disable persistence if not properly configured for OpenShift
+workers:
   persistence:
-    enabled: false  # disable PVC, use git-sync
-  git:
-    sync:
-      enabled: true
-      repository: https://github.com/your-org/airflow-dags.git
-      branch: main
-      subPath: ""  # path within repo
-      secretName: airflow-git-creds  # Optional: for private repos
+    enabled: false
 
-# Logs in PVC (or better: external like S3/GCS)
+triggerer:
+  persistence:
+    enabled: false
+
 logs:
   persistence:
-    enabled: true
-    existingClaim: airflow-logs-pvc  # or let Helm create
-    mountPath: /opt/bitnami/airflow/logs
+    enabled: false
 
-# Optional: Use external DB (recommended for prod)
-# externalDatabase:
-#   host: your-rds-endpoint
-#   user: airflow
-#   password: "xxx"
-#   database: airflow
-#   port: 5432
+dags:
+  persistence:
+    enabled: false
