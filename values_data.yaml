@@ -1,4 +1,27 @@
-# Override default security contexts for OpenShift
+# In your values.yaml
+securityContext:
+  runAsUser: 1001960000
+  fsGroup: 1001960000
+  runAsGroup: 1001960000
+
+postgresql:
+  enabled: true
+  primary:
+    podSecurityContext:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containerSecurityContext:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+redis:
+  uid: 1001960000
+  securityContext:
+    runAsUser: 1001960000
+    runAsGroup: 1001960000
+
+# Add similar securityContext for other components# Override default security contexts for OpenShift
 securityContext:
   runAsUser: 1001960000  # Matches your project's UID range
   fsGroup: 1001960000    # Matches your project's GID range
