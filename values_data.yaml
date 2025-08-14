@@ -1,106 +1,145 @@
-# In your values.yaml
-securityContext:
-  runAsUser: 1001960000
-  fsGroup: 1001960000
-  runAsGroup: 1001960000
+# values-openshift.yaml
 
+# Use Apache Airflow image (official) – ensure it supports arbitrary UID
+images:
+  airflow:
+    repository: apache/airflow
+    tag: 3.0.2
+    pullPolicy: IfNotPresent
+
+# Default UID/GID to match OpenShift project range
+uid: 1001960000
+gid: 1001960000
+
+# Global security context (new format)
+securityContexts:
+  pod:
+    runAsUser: 1001960000
+    runAsGroup: 1001960000
+    fsGroup: 1001960000
+  containers:
+    runAsUser: 1001960000
+    runAsGroup: 1001960000
+
+# Assign custom service account
+serviceAccount:
+  create: true
+  name: airflow-sa
+  annotations: {}
+
+# Apply to all components
+webserver:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+scheduler:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+workers:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+triggerer:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+apiServer:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+dagProcessor:
+  serviceAccountName: airflow-sa
+  securityContexts:
+    pod:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containers:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+# Fix init containers (wait-for-migrations, etc.)
+waitForMigrations:
+  securityContexts:
+    container:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+
+# PostgreSQL (from dependency chart)
 postgresql:
   enabled: true
+  auth:
+    postgresPassword: "supersecretpassword"
+    database: airflow
+    username: airflow
+    password: "airflow-secret"
   primary:
-    podSecurityContext:
+    securityContext:
       runAsUser: 1001960000
       runAsGroup: 1001960000
       fsGroup: 1001960000
     containerSecurityContext:
       runAsUser: 1001960000
       runAsGroup: 1001960000
+  volumePermissions:
+    enabled: true  # Ensures volume is writable by our UID
 
+# Redis
 redis:
-  uid: 1001960000
-  securityContext:
-    runAsUser: 1001960000
-    runAsGroup: 1001960000
-
-# Add similar securityContext for other components# Override default security contexts for OpenShift
-securityContext:
-  runAsUser: 1001960000  # Matches your project's UID range
-  fsGroup: 1001960000    # Matches your project's GID range
-  runAsGroup: 1001960000 # Matches your project's GID range
-
-# For Airflow 2.0+ with detailed security contexts
-securityContexts:
-  pod:
-    runAsUser: 1001960000
-    fsGroup: 1001960000
-    runAsGroup: 1001960000
-  containers: {}
-
-# Disable default security contexts that might conflict with OpenShift
-workers:
-  securityContext: {}
-  securityContexts:
-    pod: {}
-    container: {}
-
-scheduler:
-  securityContext: {}
-  securityContexts:
-    pod: {}
-    container: {}
-
-webserver:
-  securityContext: {}
-  securityContexts:
-    pod: {}
-    container: {}
-
-triggerer:
-  securityContext: {}
-  securityContexts:
-    pod: {}
-    container: {}
-
-# Enable RBAC with OpenShift SCC
-rbac:
-  create: true
-  createSCCRoleBinding: true  # This is crucial for OpenShift
-
-# Set UID/GID for specific components
-redis:
-  uid: 1001960000
-  securityContext:
-    runAsUser: 1001960000
-    runAsGroup: 1001960000
-
-pgbouncer:
-  uid: 1001960000
-  securityContexts:
-    pod:
-      runAsUser: 1001960000
-      runAsGroup: 1001960000
-    container: {}
-
-# For git-sync if enabled
-dags:
-  gitSync:
-    uid: 1001960000
+  enabled: true
+  auth:
+    enabled: true
+    password: "redis-secret"
+  master:
     securityContext:
       runAsUser: 1001960000
       runAsGroup: 1001960000
+      fsGroup: 1001960000
+    containerSecurityContext:
+      runAsUser: 1001960000
+      runAsGroup: 1001960000
+  volumePermissions:
+    enabled: true
 
-# Disable persistence if not properly configured for OpenShift
-workers:
-  persistence:
-    enabled: false
+# Prevent seccomp issues
+podAnnotations: {}
+containerAnnotations: {}
 
-triggerer:
-  persistence:
-    enabled: false
-
-logs:
-  persistence:
-    enabled: false
-
-dags:
-  persistence:
-    enabled: false
+# Optional: Use Helm hooks (disable if using ArgoCD)
+useHelmHooks: true
