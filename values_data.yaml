@@ -1,186 +1,53 @@
-# ============================================================
-# UAT CONFIGURATION (Production HA Structure + Working Fixes)
-# ============================================================
-
-# -- Cluster Timezone (Set to yours)
-timezone: "Asia/Kolkata"
-
-# -- STORAGE: Using the 'powerstore' class from your list
-globalStorageClass: &globalStorageClass "powerstore"
-
+# values-cp.yaml - UAT
 image:
-  # FIX 1: Use your custom registry (Required for UAT/Prod)
-  registry: siddalingbiradar
-  tag: "3.3.2"
-  pullPolicy: "Always"
+  repository: docker.io/siddalingbiradar/apisix # FULL URL to registry
+  pullPolicy: IfNotPresent
+  tag: v1
 
-# --- 1. DATABASE (PostgreSQL) ---
-postgresql:
+deployment:
+  mode: decoupled
+  role: control_plane
+  replicas: 2 # HIGH AVAILABILITY
+
+admin:
   enabled: true
-  postgresqlUsername: "dolphinscheduler"
-  postgresqlPassword: "CHANGEME_UAT_PASSWORD" # <--- Set a password
-  postgresqlDatabase: "dolphinscheduler"
+  type: ClusterIP
+  # Use existing secret instead of hardcoded credentials
+  existingSecret: apisix-secret
+  existingSecretAdminKey: admin-token
+  existingSecretViewerKey: viewer-token
 
-  replication:
-    enabled: true
-    readReplicas: 2
-    password: "CHANGEME_REPL_PASSWORD" # <--- Set a password
-
-  persistence:
-    enabled: true
-    storageClass: *globalStorageClass
-    size: "20Gi" # Reduced size for UAT (Save resources)
-
-  resources:
-    requests:
-      memory: "1Gi" # Reduced for UAT
-      cpu: "500m"
-    limits:
-      memory: "2Gi"
-      cpu: "1000m"
-
-  # FIX 2: OpenShift SCC Bypass (Required)
-  securityContext:
-    enabled: false
-  containerSecurityContext:
-    enabled: false
-  volumePermissions:
-    enabled: false
-  shmVolume:
-    enabled: false
-  primary:
-    podSecurityContext:
-      enabled: false
-    containerSecurityContext:
-      enabled: false
-
-mysql:
-  enabled: false
-
-# --- 2. REGISTRY (Zookeeper) ---
-zookeeper:
+etcd:
   enabled: true
-  replicaCount: 3 
-
-  persistence:
-    enabled: true
-    storageClass: *globalStorageClass
-    size: "5Gi" # Reduced for UAT
-
-  # FIX 3: OpenShift SCC Bypass (Required)
-  podSecurityContext:
-    enabled: false
-  containerSecurityContext:
-    enabled: false
-  securityContext:
-    seccompProfile: null # Explicit fix for seccomp error
-
-# --- 3. RESOURCE STORAGE (MinIO) ---
-minio:
-  enabled: true
+  replicaCount: 3
   auth:
-    rootUser: "minio-admin"
-    rootPassword: "CHANGEME_MINIO_PASSWORD"
-
-  mode: "distributed"
-  statefulset:
-    replicaCount: 4 
-
+    rbac:
+      create: true  # ENABLE AUTH
+      existingSecret: apisix-secret
+      existingSecretPasswordKey: etcd-root-password
   persistence:
     enabled: true
-    storageClass: *globalStorageClass
-    size: "20Gi" # Reduced for UAT
-
-  # FIX 4: OpenShift SCC Bypass (Required)
-  podSecurityContext:
-    enabled: false
-  containerSecurityContext:
-    enabled: false
-  volumePermissions:
-    enabled: false
-
-externalDatabase:
-  enabled: false
-
-# --- 4. DOLPHINSCHEDULER COMPONENTS ---
-
-conf:
-  auto: true
-  common:
-    resource.storage.type: S3
-
-master:
-  enabled: true
-  replicas: "3" # Testing HA in UAT
-  persistentVolumeClaim:
-    enabled: true
-    storageClass: *globalStorageClass
-    size: "5Gi"
+    size: 8Gi
+    storageClass: "gp3" # OR "standard", "managed-premium" depending on cloud
   resources:
     requests:
-      memory: "1Gi"
-      cpu: "500m"
+      cpu: 200m
+      memory: 256Mi
     limits:
-      memory: "2Gi"
-      cpu: "1000m"
-  service:
-    serviceMonitor:
-      enabled: false # Disable unless you have Prometheus Operator installed
+      cpu: 500m
+      memory: 1Gi
 
-worker:
-  enabled: true
-  replicas: "3" # Testing HA in UAT
-  persistentVolumeClaim:
-    enabled: true
-    dataPersistentVolume:
-      enabled: true
-      storageClass: *globalStorageClass
-      size: "10Gi"
-    logsPersistentVolume:
-      enabled: true
-      storageClass: *globalStorageClass
-      size: "5Gi"
-  resources:
-    requests:
-      memory: "2Gi"
-      cpu: "1000m"
-    limits:
-      memory: "4Gi"
-      cpu: "2000m"
-  
-  # Disable KEDA for UAT unless you are 100% sure it's installed
-  keda:
-    enabled: false 
-    
-  service:
-    serviceMonitor:
-      enabled: false
+apisix:
+  plugins:
+    # ... (Keep your plugin list exactly as is) ...
+    - "verify_permission"
+    - "verify_jwt"
 
-  # FIX 5: The Critical Tenant Fix
-  env:
-    WORKER_TENANT_CONFIG_DEFAULT_TENANT_ENABLED: "true"
-
-alert:
-  enabled: true
-  replicas: 2
-  persistentVolumeClaim:
-    enabled: true
-    storageClass: *globalStorageClass
-    size: "2Gi"
-  service:
-    serviceMonitor:
-      enabled: false
-
-api:
-  enabled: true
-  replicas: "2"
-  persistentVolumeClaim:
-    enabled: true
-    storageClass: *globalStorageClass
-    size: "2Gi"
-  service:
-    serviceMonitor:
-      enabled: false
-
-ingress:
-  enabled: false
+# Resource limits for CP itself
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
