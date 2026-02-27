@@ -1,53 +1,155 @@
-# values-cp.yaml - UAT
-image:
-  repository: docker.io/siddalingbiradar/apisix # FULL URL to registry
-  pullPolicy: IfNotPresent
-  tag: v1
+# DATA PLANE CONFIGURATION
 
-deployment:
-  mode: decoupled
-  role: control_plane
-  replicas: 2 # HIGH AVAILABILITY
+# global:
+#   # e.g.
+#   # imagePullSecrets:
+#   #   - my-registry-secrets
+#   #   - other-registry-secrets
+#   # -- Global Docker registry secret names as an array
+#   imagePullSecrets: []
 
-admin:
+initContainer:
+  image: busybox
+  tag: 1.28
+
+autoscaling:
   enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 75
+
+service:
   type: ClusterIP
-  # Use existing secret instead of hardcoded credentials
-  existingSecret: apisix-secret
-  existingSecretAdminKey: admin-token
-  existingSecretViewerKey: viewer-token
+  externalTrafficPolicy: null
 
 etcd:
-  enabled: true
-  replicaCount: 3
-  auth:
-    rbac:
-      create: true  # ENABLE AUTH
-      existingSecret: apisix-secret
-      existingSecretPasswordKey: etcd-root-password
-  persistence:
-    enabled: true
-    size: 8Gi
-    storageClass: "gp3" # OR "standard", "managed-premium" depending on cloud
-  resources:
-    requests:
-      cpu: 200m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
+  enabled: false
+
+externalEtcd:
+  host:
+    - http://etcd:2379
+  user: "root"
+  existingSecret: apisix-cp-etcd
+  secretPasswordKey: "etcd-root-password"
+  
 
 apisix:
-  plugins:
-    # ... (Keep your plugin list exactly as is) ...
-    - "verify_permission"
-    - "verify_jwt"
+  deployment:
+    mode: decoupled
+    role: data_plane
+    role_data_plane:
+      config_provider: "etcd"
 
-# Resource limits for CP itself
+  admin:
+    enabled: false
+    
+
 resources:
   requests:
-    cpu: 100m
-    memory: 128Mi
-  limits:
     cpu: 500m
     memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# apisix:
+#   # This is what generates the config.yaml
+#   plugins:
+#     - "real-ip"
+#     - "ai"
+#     - "client-control"
+#     - "proxy-control"
+#     - "request-id"
+#     - "zipkin"
+#     - "ext-plugin-pre-req"
+#     - "fault-injection"
+#     - "mocking"
+#     - "serverless-pre-function"
+#     - "cors"
+#     - "ip-restriction"
+#     - "ua-restriction"
+#     - "referer-restriction"
+#     - "csrf"
+#     - "uri-blocker"
+#     - "request-validation"
+#     - "chaitin-waf"
+#     - "multi-auth"
+#     - "openid-connect"
+#     - "cas-auth"
+#     - "authz-casbin"
+#     - "authz-casdoor"
+#     - "wolf-rbac"
+#     - "ldap-auth"
+#     - "hmac-auth"
+#     - "basic-auth"
+#     - "jwt-auth"
+#     - "jwe-decrypt"
+#     - "key-auth"
+#     - "consumer-restriction"
+#     - "attach-consumer-label"
+#     - "forward-auth"
+#     - "opa"
+#     - "authz-keycloak"
+#     - "proxy-cache"
+#     - "body-transformer"
+#     - "ai-prompt-template"
+#     - "ai-prompt-decorator"
+#     - "ai-prompt-guard"
+#     - "ai-rag"
+#     - "ai-rate-limiting"
+#     - "ai-proxy-multi"
+#     - "ai-proxy"
+#     - "ai-aws-content-moderation"
+#     - "ai-aliyun-content-moderation"
+#     - "proxy-mirror"
+#     - "proxy-rewrite"
+#     - "workflow"
+#     - "api-breaker"
+#     - "limit-conn"
+#     - "limit-count"
+#     - "limit-req"
+#     - "gzip"
+#     - "traffic-split"
+#     - "redirect"
+#     - "response-rewrite"
+#     - "mcp-bridge"
+#     - "degraphql"
+#     - "kafka-proxy"
+#     - "grpc-transcode"
+#     - "grpc-web"
+#     - "http-dubbo"
+#     - "public-api"
+#     - "prometheus"
+#     - "datadog"
+#     - "lago"
+#     - "loki-logger"
+#     - "elasticsearch-logger"
+#     - "echo"
+#     - "loggly"
+#     - "http-logger"
+#     - "splunk-hec-logging"
+#     - "skywalking-logger"
+#     - "google-cloud-logging"
+#     - "sls-logger"
+#     - "tcp-logger"
+#     - "kafka-logger"
+#     - "rocketmq-logger"
+#     - "syslog"
+#     - "udp-logger"
+#     - "file-logger"
+#     - "clickhouse-logger"
+#     - "tencent-cloud-cls"
+#     - "inspect"
+#     - "example-plugin"
+#     - "aws-lambda"
+#     - "azure-functions"
+#     - "openwhisk"
+#     - "openfunction"
+#     - "serverless-post-function"
+#     - "ext-plugin-post-req"
+#     - "ext-plugin-post-resp"
+#     - "ai-request-rewrite"
+#     # --- ADD YOUR PLUGIN ---
+#     - "verify_permission"
+#     - "verify_jwt"
