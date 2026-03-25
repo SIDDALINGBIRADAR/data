@@ -1,0 +1,219 @@
+# FILE: temporal/values.postgresql.yaml
+
+server:
+  replicaCount: 1
+
+  image:
+    tag: "1.29.1"
+    pullPolicy: IfNotPresent
+
+  # Pod-level security context with specific UID from allowed range
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001000000
+    fsGroup: 1001000000
+    seccompProfile:
+      type: RuntimeDefault
+
+  frontend:
+    replicaCount: 1
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1001000000
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+
+  history:
+    replicaCount: 1
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1001000000
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+
+  matching:
+    replicaCount: 1
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1001000000
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+
+  worker:
+    replicaCount: 1
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1001000000
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+
+  config:
+    persistence:
+      default:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "<your-sql-host>"
+          port: "<your-sql-port>"
+          database: temporal
+          user: "<your-temporal-db-user>"
+          password: "<your-temporal-db-password>"
+          maxConns: 20
+          maxIdleConns: 20
+          maxConnLifetime: "1h"
+
+      visibility:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "<your-sql-host>"
+          port: "<your-sql-port>"
+          database: temporal_visibility
+          user: "<your-visibility-db-user>"
+          password: "<your-visibility-db-password>"
+          maxConns: 20
+          maxIdleConns: 20
+          maxConnLifetime: "1h"
+
+
+web:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    tag: "2.42.1"
+    pullPolicy: IfNotPresent
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001000000
+    fsGroup: 1001000000
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1001000000
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  additionalEnv:
+    - name: TEMPORAL_UI_PUBLIC_PATH
+      value: "/temporal"
+
+
+admintools:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    tag: "1.29.1-tctl-1.18.4-cli-1.5.0"
+    pullPolicy: IfNotPresent
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1001000000
+    fsGroup: 1001000000
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1001000000
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+        - ALL
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+
+
+cassandra:
+  enabled: false
+mysql:
+  enabled: false
+postgresql:
+  enabled: false
+prometheus:
+  enabled: false
+grafana:
+  enabled: false
+elasticsearch:
+  enabled: false
+schema:
+  createDatabase:
+    enabled: false
+  setup:
+    enabled: false
+  update:
+    enabled: false
