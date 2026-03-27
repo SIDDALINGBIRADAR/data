@@ -4,14 +4,14 @@ server:
   replicaCount: 1
 
   image:
+    repository: nexus.uat.finopaymentbank.in:9443/temporalio/server
     tag: "1.29.1"
     pullPolicy: IfNotPresent
 
-  # Pod-level security context with specific UID from allowed range
   podSecurityContext:
+    runAsUser: 1000650000    
+    fsGroup: 1000650000       
     runAsNonRoot: true
-    runAsUser: 1001000000
-    fsGroup: 1001000000
     seccompProfile:
       type: RuntimeDefault
 
@@ -21,7 +21,6 @@ server:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
       runAsNonRoot: true
-      runAsUser: 1001000000
       seccompProfile:
         type: RuntimeDefault
       capabilities:
@@ -41,7 +40,6 @@ server:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
       runAsNonRoot: true
-      runAsUser: 1001000000
       seccompProfile:
         type: RuntimeDefault
       capabilities:
@@ -61,7 +59,6 @@ server:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
       runAsNonRoot: true
-      runAsUser: 1001000000
       seccompProfile:
         type: RuntimeDefault
       capabilities:
@@ -81,7 +78,6 @@ server:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
       runAsNonRoot: true
-      runAsUser: 1001000000
       seccompProfile:
         type: RuntimeDefault
       capabilities:
@@ -101,11 +97,11 @@ server:
         driver: "sql"
         sql:
           driver: "postgres12"
-          host: "<your-sql-host>"
-          port: "<your-sql-port>"
+          host: "baas-uat-db-ha.baas-postgres"
+          port: "5432"
           database: temporal
-          user: "<your-temporal-db-user>"
-          password: "<your-temporal-db-password>"
+          user: "temporal_user"
+          password: "temporal@123"
           maxConns: 20
           maxIdleConns: 20
           maxConnLifetime: "1h"
@@ -114,11 +110,11 @@ server:
         driver: "sql"
         sql:
           driver: "postgres12"
-          host: "<your-sql-host>"
-          port: "<your-sql-port>"
+          host: "baas-uat-db-ha.baas-postgres"
+          port: "5432"
           database: temporal_visibility
-          user: "<your-visibility-db-user>"
-          password: "<your-visibility-db-password>"
+          user: "temporal_visibility_user"
+          password: "visibility_visibility"
           maxConns: 20
           maxIdleConns: 20
           maxConnLifetime: "1h"
@@ -129,13 +125,14 @@ web:
   replicaCount: 1
 
   image:
+    repository: nexus.uat.finopaymentbank.in:9443/temporalio/ui
     tag: "2.42.1"
     pullPolicy: IfNotPresent
 
   podSecurityContext:
+    runAsUser: 1000650000     
+    fsGroup: 1000650000       
     runAsNonRoot: true
-    runAsUser: 1001000000
-    fsGroup: 1001000000
     seccompProfile:
       type: RuntimeDefault
 
@@ -143,7 +140,6 @@ web:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
     runAsNonRoot: true
-    runAsUser: 1001000000
     seccompProfile:
       type: RuntimeDefault
     capabilities:
@@ -159,22 +155,22 @@ web:
       memory: "512Mi"
 
   additionalEnv:
-    - name: TEMPORAL_UI_PUBLIC_PATH
-      value: "/temporal"
-
+    - name: TEMPORAL_CSRF_COOKIE_INSECURE
+      value: "true"
 
 admintools:
   enabled: true
   replicaCount: 1
 
   image:
+    repository: nexus.uat.finopaymentbank.in:9443/temporalio/admin-tools
     tag: "1.29.1-tctl-1.18.4-cli-1.5.0"
     pullPolicy: IfNotPresent
 
   podSecurityContext:
+    runAsUser: 1000650000     
+    fsGroup: 1000650000       
     runAsNonRoot: true
-    runAsUser: 1001000000
-    fsGroup: 1001000000
     seccompProfile:
       type: RuntimeDefault
 
@@ -182,7 +178,6 @@ admintools:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
     runAsNonRoot: true
-    runAsUser: 1001000000
     seccompProfile:
       type: RuntimeDefault
     capabilities:
@@ -196,7 +191,6 @@ admintools:
     limits:
       cpu: "250m"
       memory: "256Mi"
-
 
 cassandra:
   enabled: false
